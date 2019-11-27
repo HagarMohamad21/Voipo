@@ -37,7 +37,7 @@ class CallActivity : AppCompatActivity() {
     }
 
     private fun  getClient() {
-        client= Client(this).getClient()
+        client= Client(this).getClient("Hagar")
         client.setSupportCalling(true)
         client.start()
     }
