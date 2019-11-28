@@ -1,5 +1,6 @@
 package net.zonetech.viopdemo.Activities
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -8,62 +9,88 @@ import android.content.pm.PackageManager
 import android.os.*
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Toast
 import net.zonetech.viopdemo.Sinch.SinchService
-import net.zonetech.viopdemo.Utils.Common
+import net.zonetech.viopdemo.Utils.Common.Companion.MESSAGE_PERMISSIONS_NEEDED
+import net.zonetech.viopdemo.Utils.Common.Companion.MESSENGER
+import net.zonetech.viopdemo.Utils.Common.Companion.REQUIRED_PERMISSION
 
-class BaseActivity : AppCompatActivity(),ServiceConnection {
-   var sinchServiceBinder:SinchService.SinchServiceBinder?=null
+open class BaseActivity : AppCompatActivity(),ServiceConnection {
+    private var mSinchServiceInterface: SinchService.SinchServiceInterface? = null
+    private val TAG = "BaseActivity"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         bindService()
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         window.addFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN
-               or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-               or WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-               or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-               or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                    or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                    or WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                    or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                    or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         )
     }
 
-    private var messenger=Messenger(object : Handler() {
-        override fun handleMessage(msg: Message?) {
-           when(msg!!.what){
-               Common.MESSAGE_PERMISSIONS_NEEDED->{
-                   var bundle=msg.data
-                   var requiredPermission=bundle.getString(Common.REQUIRED_PERMISSION)
-                   ActivityCompat.requestPermissions(this@BaseActivity, arrayOf(
-                       requiredPermission),2000)
-               }
-           }
 
+
+    override fun onServiceConnected(
+        componentName: ComponentName,
+        iBinder: IBinder?
+    ) {
+        if (SinchService::class.java.name == componentName.className) {
+            mSinchServiceInterface = iBinder as SinchService.SinchServiceInterface?
+            onServiceConnected()
         }
-    })
-
-   private fun  bindService(){
-        Intent(this,SinchService()::class.java).also {
-            it.putExtra(Common.MESSENGER,messenger)
-            bindService(it,this, Context.BIND_AUTO_CREATE)
-
-        }
-
     }
 
-    override fun onServiceDisconnected(name: ComponentName?) {
-        if(name!!.className==SinchService::class.qualifiedName){
-            sinchServiceBinder= null
+    override fun onServiceDisconnected(componentName: ComponentName) {
+        if (SinchService::class.java.name == componentName.className) {
+            mSinchServiceInterface = null
             onServiceDisconnected()
         }
     }
 
-    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-      if(name!!.className==(SinchService::class.qualifiedName)){
-          sinchServiceBinder= service as SinchService.SinchServiceBinder
-          onServiceConnected()
-      }
+    protected open fun onServiceConnected() { // for subclasses
+    }
+
+    protected open fun onServiceDisconnected() { // for subclasses
+    }
+
+    protected open fun getSinchServiceInterface(): SinchService.SinchServiceInterface? {
+        return mSinchServiceInterface
+    }
+
+    private val messenger = Messenger(object : Handler() {
+        override fun handleMessage(msg: Message) {
+            when (msg.what) {
+                MESSAGE_PERMISSIONS_NEEDED -> {
+                    val bundle = msg.data
+                    val requiredPermission =
+                        bundle.getString(REQUIRED_PERMISSION)
+                    ActivityCompat.requestPermissions(
+                        this@BaseActivity,
+                        arrayOf(requiredPermission),
+                        0
+                    )
+                }
+            }
+        }
+    })
+
+
+
+     open fun bindService() {
+        val serviceIntent = Intent(this, SinchService::class.java)
+        serviceIntent.putExtra(MESSENGER, messenger)
+        applicationContext.bindService(
+            serviceIntent,
+            this,
+            Context.BIND_AUTO_CREATE
+        )
     }
 
     override fun onRequestPermissionsResult(
@@ -71,17 +98,20 @@ class BaseActivity : AppCompatActivity(),ServiceConnection {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        if(requestCode==2000){
-            if(grantResults.isNotEmpty() &&grantResults[0]==PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this,"You may now place a call",Toast.LENGTH_LONG).show()
-                 sinchServiceBinder!!.retryStartAfterPermissionGranted()
-            }
+        Log.d(TAG, "onRequestPermissionsResult: ")
+        var granted = grantResults.isNotEmpty()
+        for (grantResult in grantResults) {
+            granted = granted and (grantResult == PackageManager.PERMISSION_GRANTED)
         }
-    }
-
-    protected fun onServiceConnected() { // for subclasses
-    }
-
-    protected fun onServiceDisconnected() { // for subclasses
+        if (granted) {
+            Toast.makeText(this, "You may now place a call", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(
+                this,
+                "This application needs permission to use your microphone and camera to function properly.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        mSinchServiceInterface!!.retryStartAfterPermissionGranted()
     }
 }

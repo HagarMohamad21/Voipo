@@ -11,7 +11,8 @@ import net.zonetech.viopdemo.Sinch.Client
 import net.zonetech.viopdemo.R
 
 const val REQUEST_CODE=2019
-class CallActivity : AppCompatActivity() {
+class CallActivity :BaseActivity() {
+
    private lateinit var client:SinchClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

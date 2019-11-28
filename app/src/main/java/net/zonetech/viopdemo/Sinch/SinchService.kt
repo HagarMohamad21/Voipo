@@ -2,7 +2,9 @@ package net.zonetech.viopdemo.Sinch
 
 import android.Manifest
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.*
 import android.util.Log
@@ -17,43 +19,52 @@ import net.zonetech.viopdemo.Utils.Common.Companion.MESSENGER
 import net.zonetech.viopdemo.Utils.Common.Companion.REQUIRED_PERMISSION
 
 class SinchService :Service() {
-    private lateinit var messenger:Messenger
-    private  var sinchServiceBinder= SinchServiceBinder()
-    private lateinit var client: SinchClient
-    private lateinit var mListener: StartFailedListener
-    //we should get mUserId from shared pref
-    private val mUserId: String? = "Hagar"
+    private val APP_KEY = "b9ea54f0-21dc-4f9e-b435-c312f2e14c38"
+    private val APP_SECRET = "5nLsTY7IqkSzBAYdzXL+Bg=="
+    private val ENVIRONMENT = "clientapi.sinch.com"
+    private var messenger: Messenger? = null
+    private val TAG = "SinchService"
 
-    override fun onBind(intent: Intent?): IBinder? {
-        messenger=intent!!.getParcelableExtra(MESSENGER)
-     return sinchServiceBinder
-    }
+    private val mSinchServiceInterface = SinchServiceInterface()
+    private var mSinchClient: SinchClient? = null
+    private var mUserId: String? = null
+
+    private var mListener: StartFailedListener? = null
+    private var mSettings: PersistedSettings? = null
 
     override fun onCreate() {
         super.onCreate()
+        mSettings = PersistedSettings(applicationContext)
         attemptAutoStart()
     }
-    private fun stop(){
-      if(client!=null){
-          client.terminateGracefully()
-      }
-    }
+
     private fun attemptAutoStart() {
-      if(messenger!=null){
-          start()
-      }
+        val userName = mSettings!!.username!!
+        if (!userName.isEmpty() && messenger != null) {
+            start(userName)
+        }
     }
 
-    private fun start() {
-        var permissionsGranted = true
-        createClient()
+    override fun onDestroy() {
+        if (mSinchClient != null && mSinchClient!!.isStarted) {
+            mSinchClient!!.terminateGracefully()
+        }
+        super.onDestroy()
+    }
 
+    private fun start(userName: String) {
+        var permissionsGranted = true
+        if (mSinchClient == null) {
+            mSettings!!.username = userName
+            createClient(userName)
+        }
         try { //mandatory checks
-            client.checkManifest()
+            mSinchClient!!.checkManifest()
             // check for bluetooth for automatic audio routing
             if (baseContext.checkCallingOrSelfPermission(Manifest.permission.BLUETOOTH)
                 != PackageManager.PERMISSION_GRANTED
             ) {
+                Log.d(TAG, "start: throw MissingPermissionException(Manifest.permission.BLUETOOTH) ")
                 throw MissingPermissionException(Manifest.permission.BLUETOOTH)
             }
         } catch (e: MissingPermissionException) {
@@ -65,99 +76,168 @@ class SinchService :Service() {
                 message.data = bundle
                 message.what = MESSAGE_PERMISSIONS_NEEDED
                 try {
-                    messenger.send(message)
+                    messenger!!.send(message)
                 } catch (e1: RemoteException) {
                     e1.printStackTrace()
                 }
             }
         }
         if (permissionsGranted) {
-            client.start()
+            Log.d(TAG, "Starting SinchClient")
+            mSinchClient!!.start()
         }
-
     }
 
-    private fun createClient() {
-        client= Client(this).getClient(mUserId!!)
-        client.setSupportCalling(true)
-        client.startListeningOnActiveConnection()
-        client.addSinchClientListener(MySinchClientListener())
+    private fun createClient(userName: String) {
+        mUserId = userName
+        mSinchClient =
+            Sinch.getSinchClientBuilder().context(applicationContext).userId(userName)
+                .applicationKey(APP_KEY)
+                .applicationSecret(APP_SECRET)
+                .environmentHost(ENVIRONMENT).build()
+        mSinchClient!!.setSupportCalling(true)
+        mSinchClient!!.startListeningOnActiveConnection()
+        mSinchClient!!.addSinchClientListener(MySinchClientListener())
+        // Permission READ_PHONE_STATE is needed to respect native calls.
+        mSinchClient!!.getCallClient().setRespectNativeCalls(false)
+        mSinchClient!!.getCallClient().addCallClientListener(SinchCallClientListener())
     }
 
-   inner class SinchServiceBinder() : Binder(){
-        fun callPhoneNumber(phoneNumber:String): Call {
-            return client.callClient.callPhoneNumber(phoneNumber)
+    private fun stop() {
+        if (mSinchClient != null) {
+            mSinchClient!!.terminateGracefully()
+            mSinchClient = null
         }
-
-        fun callUserByName(userName:String):Call?{
-            if(client==null) return null
-            return client.callClient.callUser(userName) }
-
-        fun isStarted():Boolean{
-            return   return client != null && client.isStarted
-        }
-        fun retryStartAfterPermissionGranted(){
-         attemptAutoStart()
-        }
-       fun startClient(){
-           start()
-       }
-       fun setStartListener(listener: StartFailedListener){
-           mListener=listener
-       }
-
-       fun getCall():Call?{
-           if(client==null) return null
-           return client.callClient.getCall(CALL_ID)
-       }
-       fun getAudioController():AudioController?{
-           if(!isStarted()){
-               return null
-           }
-           return client.audioController
-       }
+        mSettings!!.username = ""
     }
 
-  inner   class MySinchClientListener : SinchClientListener {
-        override fun onClientStarted(p0: SinchClient?) {
-          if(mListener!=null){
-              mListener.onStarted()
-          }
+    private fun isStarted(): Boolean {
+        return mSinchClient != null && mSinchClient!!.isStarted
+    }
+
+    override fun onBind(intent: Intent): IBinder? {
+        messenger = intent.getParcelableExtra(MESSENGER)
+        return mSinchServiceInterface
+    }
+
+   inner class SinchServiceInterface : Binder() {
+        fun callPhoneNumber(phoneNumber: String?): Call {
+            return mSinchClient!!.getCallClient().callPhoneNumber(phoneNumber)
         }
 
-        override fun onClientStopped(p0: SinchClient?) {
+        fun callUser(userId: String?): Call? {
+            return if (mSinchClient == null) {
+                null
+            } else mSinchClient!!.getCallClient().callUser(userId)
         }
 
-        override fun onRegistrationCredentialsRequired(p0: SinchClient?, p1: ClientRegistration?) {
+        val userName: String
+            get() = mUserId!!
+
+        val isStarted: Boolean
+            get() = this@SinchService.isStarted()
+
+        fun retryStartAfterPermissionGranted() {
+            this@SinchService.attemptAutoStart()
         }
 
-        override fun onLogMessage(p0: Int, p1: String?, p2: String?) {
+        fun startClient(userName: String?) {
+            start(userName!!)
         }
 
-        override fun onClientFailed(p0: SinchClient?, p1: SinchError?) {
-            if(mListener!=null){
-                mListener.onStartFailed(p1)
+        fun stopClient() {
+            stop()
+        }
+
+        fun setStartListener(listener: StartFailedListener) {
+            mListener = listener
+        }
+
+        fun getCall(callId: String?): Call? {
+            return if (mSinchClient != null) mSinchClient!!.getCallClient().getCall(callId) else null
+        }
+
+        val audioController: AudioController?
+            get() = if (!isStarted) {
+                null
+            } else mSinchClient!!.getAudioController()
+    }
+
+    interface StartFailedListener {
+        fun onStartFailed(error: SinchError?)
+        fun onStarted()
+    }
+
+    inner class MySinchClientListener : SinchClientListener {
+        private val TAG = "MySinchClientListener"
+        override fun onClientFailed(client: SinchClient, error: SinchError) {
+            mListener?.onStartFailed(error)
+            mSinchClient!!.terminate()
+            mSinchClient = null
+        }
+
+        override fun onClientStarted(client: SinchClient) {
+            Log.d(TAG, "SinchClient started")
+            mListener?.onStarted()
+        }
+
+        override fun onClientStopped(client: SinchClient) {
+            Log.d(TAG, "SinchClient stopped")
+        }
+
+        override fun onLogMessage(
+            level: Int,
+            area: String,
+            message: String
+        ) {
+            when (level) {
+                Log.DEBUG -> Log.d(area, message)
+                Log.ERROR -> Log.e(area, message)
+                Log.INFO -> Log.i(area, message)
+                Log.VERBOSE -> Log.v(area, message)
+                Log.WARN -> Log.w(area, message)
             }
-            client.terminate()
+        }
 
+        override fun onRegistrationCredentialsRequired(
+            client: SinchClient,
+            clientRegistration: ClientRegistration
+        ) {
         }
     }
 
-  interface StartFailedListener {
-      fun onStartFailed(error: SinchError?)
+    inner class SinchCallClientListener :
+        CallClientListener {
+        override fun onIncomingCall(
+            callClient: CallClient,
+            call: Call
+        ) {
+            Log.d(TAG, "Incoming call")
+            val intent = Intent(
+                this@SinchService,
+                IncomingCallActivity::class.java
+            )
+            intent.putExtra(CALL_ID, call.callId)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            this@SinchService.startActivity(intent)
+        }
+    }
 
-      fun onStarted()
-  }
-
-    inner class  SinchCallClientListener : CallClientListener{
-        override fun onIncomingCall(p0: CallClient?, call: Call?) {
-           Intent(this@SinchService, IncomingCallActivity::class.java).also {
-                it.putExtra(CALL_ID,call!!.callId)
-                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(it)
+    inner class PersistedSettings(context: Context) {
+        private val mStore: SharedPreferences
+        var username: String?
+            get() = mStore.getString("Username", "")
+            set(username) {
+                val editor = mStore.edit()
+                editor.putString("Username", username)
+                editor.commit()
             }
+
+        private  val PREF_KEY = "Sinch"
+        init {
+            mStore = context.getSharedPreferences(
+                PREF_KEY,
+                Context.MODE_PRIVATE
+            )
         }
-    }
-
-
-}
+    }}
