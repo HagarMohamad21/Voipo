@@ -13,6 +13,7 @@ class IncomingCallActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_incoming_call)
         initViews()
+
     }
 
     private fun initViews() {
