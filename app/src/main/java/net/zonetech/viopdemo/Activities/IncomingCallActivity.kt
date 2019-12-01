@@ -1,23 +1,118 @@
 package net.zonetech.viopdemo.Activities
 
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import android.support.v4.app.ActivityCompat
+import android.util.Log
+import android.widget.Toast
+import com.sinch.android.rtc.MissingPermissionException
+import com.sinch.android.rtc.PushPair
 import com.sinch.android.rtc.calling.Call
+import com.sinch.android.rtc.calling.CallListener
 import kotlinx.android.synthetic.main.activity_incoming_call.*
 import net.zonetech.viopdemo.R
+import net.zonetech.viopdemo.Utils.AudioPlayer
 import net.zonetech.viopdemo.Utils.Common
 
-class IncomingCallActivity : AppCompatActivity() {
+class IncomingCallActivity : BaseActivity() {
+    private val TAG = "IncomingCallActivity"
+    var audioPlayer:AudioPlayer?=null
+    var callId:String?=null
+    var call:Call?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_incoming_call)
+        Log.d(TAG, "onCreate:****************************** ")
+        audioPlayer= AudioPlayer(this)
+        audioPlayer?.playRingTone()
         initViews()
+       setListeners()
+    }
+
+    private fun setListeners() {
+        answerBtn.setOnClickListener {
+            audioPlayer?.stopRingTone()
+            call=getSinchServiceInterface()?.getCall(callId)
+            if(call!=null){
+                try{
+                    call?.answer()
+                    Intent(this, AnsweredCallActivity::class.java).also {
+                        it.putExtra(Common.CALL_ID, callId)
+                        startActivity(it)
+                    }
+
+                }
+                catch (e:MissingPermissionException){
+                    ActivityCompat.requestPermissions(this,
+                        arrayOf(e.requiredPermission),2019)
+                }
+            }
+            else{
+                finish()
+            }
+        }
+        declineBtn.setOnClickListener {
+            audioPlayer?.stopRingTone()
+            call=getSinchServiceInterface()?.getCall(callId)
+            if(call!=null){
+                call?.hangup()
+            }
+            finish()
+
+        }
 
     }
 
     private fun initViews() {
-        var callerName=intent.getStringExtra(Common.CALL_ID)
-        callerNameTxt.text=callerName
+        callId=intent.getStringExtra(Common.CALL_ID)
+    }
+    override fun onServiceConnected() {
+
+        Log.d(TAG, "onServiceConnected: *********************"+callId)
+         call=getSinchServiceInterface()?.getCall(callId)
+        if (call != null) {
+            Log.d(TAG, "onServiceConnected call not null caller: ******************************* "+call?.remoteUserId)
+            call?.addCallListener(SinchCallListener())
+            callerNameTxt.text=call?.remoteUserId
+        }
+        else{
+            finish()
+        }
+
+
+
+
+    }
+
+    inner class SinchCallListener():CallListener{
+        override fun onCallEstablished(p0: Call?) {
+        }
+
+        override fun onCallProgressing(p0: Call?) {
+        }
+
+        override fun onShouldSendPushNotification(p0: Call?, p1: MutableList<PushPair>?) {
+        }
+
+        override fun onCallEnded(p0: Call?) {
+            audioPlayer?.stopRingTone()
+            finish()        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        if(requestCode==2019){
+            if(grantResults.isNotEmpty()&&grantResults[0]
+                ==PackageManager.PERMISSION_GRANTED)
+         Toast.makeText(this, "You may now answer the call", Toast.LENGTH_LONG).show()
+            else
+            Toast.makeText(this, "This application needs permission to use your microphone to function properly.", Toast.LENGTH_LONG).show()
+
+        }
     }
 }

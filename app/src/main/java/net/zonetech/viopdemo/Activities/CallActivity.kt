@@ -1,60 +1,44 @@
-package net.zonetech.viopdemo.Activities
+ package net.zonetech.viopdemo.Activities
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.v4.app.ActivityCompat
-import android.support.v7.app.AppCompatActivity
 import com.sinch.android.rtc.SinchClient
 import kotlinx.android.synthetic.main.activity_call.*
-import net.zonetech.viopdemo.Sinch.Client
 import net.zonetech.viopdemo.R
+import net.zonetech.viopdemo.Sinch.Client
 
-const val REQUEST_CODE=2019
+ const val REQUEST_CODE=2019
 class CallActivity :BaseActivity() {
 
    private lateinit var client:SinchClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_call)
-        askPermission()
-        getClient()
+        callBtn.isEnabled=false
         setListeners()
 
     }
 
-    private fun askPermission() {
-      if(ActivityCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
-          ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO),
-              REQUEST_CODE
-          )
-      }
+    override fun onServiceConnected() {
+        callBtn.isEnabled=true
+        var name=getSinchServiceInterface()?.userName
+        userNameTxt.text = name
+        getClient(name!!)
+
+
     }
 
     private fun setListeners() {
         callBtn.setOnClickListener {
-            client.callClient.callUser("Esraa")
+            if(!nameEditTxt.text.isNullOrEmpty()){
+                var userName=nameEditTxt.text.toString()
+                client.callClient.callUser(userName)
+            }
+
         }
     }
-
-    private fun  getClient() {
-        client= Client(this).getClient("Hagar")
+    private fun  getClient(name:String) {
+        client= Client(this).getClient(name)
         client.setSupportCalling(true)
         client.start()
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode== REQUEST_CODE){
-            if(grantResults.isNotEmpty()&&grantResults[0]==PackageManager.PERMISSION_GRANTED){
-                // we have permission
-            }
-            else {
-                finish()
-            }
-        }
     }
 }

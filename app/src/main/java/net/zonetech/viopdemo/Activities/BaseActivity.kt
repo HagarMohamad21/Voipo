@@ -27,12 +27,10 @@ open class BaseActivity : AppCompatActivity(),ServiceConnection {
         bindService()
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         window.addFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-                    or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                     or WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
                     or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-                    or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-        )
+                    or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
     }
 
 

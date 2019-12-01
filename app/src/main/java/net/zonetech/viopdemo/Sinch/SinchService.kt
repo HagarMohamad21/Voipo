@@ -40,6 +40,7 @@ class SinchService :Service() {
 
     private fun attemptAutoStart() {
         val userName = mSettings!!.username!!
+        Log.d(TAG, "attemptAutoStart: "+userName)
         if (!userName.isEmpty() && messenger != null) {
             start(userName)
         }
