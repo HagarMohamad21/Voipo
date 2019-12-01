@@ -4,17 +4,41 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="10dp"
     tools:context=".Activities.AnsweredCallActivity">
 
     <TextView
-        android:id="@+id/textView3"
+        android:id="@+id/callStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Call is going on...."
+        android:text="Ringing.."
         android:textColor="#000"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/callDuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="00:00"
+        android:textColor="#000"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/callStatus" />
+
+    <Button
+        android:id="@+id/hangupBtn"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="Hang up"
+        android:textAllCaps="false"
+        android:textColor="@color/off_white"
+        android:background="@drawable/button_decline"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 </android.support.constraint.ConstraintLayout>

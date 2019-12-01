@@ -16,7 +16,6 @@ import net.zonetech.viopdemo.Utils.AudioPlayer
 import net.zonetech.viopdemo.Utils.Common
 
 class IncomingCallActivity : BaseActivity() {
-    private val TAG = "IncomingCallActivity"
     var audioPlayer:AudioPlayer?=null
     var callId:String?=null
     var call:Call?=null
@@ -24,7 +23,6 @@ class IncomingCallActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_incoming_call)
-        Log.d(TAG, "onCreate:****************************** ")
         audioPlayer= AudioPlayer(this)
         audioPlayer?.playRingTone()
         initViews()
@@ -70,10 +68,8 @@ class IncomingCallActivity : BaseActivity() {
     }
     override fun onServiceConnected() {
 
-        Log.d(TAG, "onServiceConnected: *********************"+callId)
          call=getSinchServiceInterface()?.getCall(callId)
         if (call != null) {
-            Log.d(TAG, "onServiceConnected call not null caller: ******************************* "+call?.remoteUserId)
             call?.addCallListener(SinchCallListener())
             callerNameTxt.text=call?.remoteUserId
         }
