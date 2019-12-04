@@ -2,8 +2,6 @@ package net.zonetech.viopdemo.Activities
 
 import android.media.AudioManager
 import android.os.Bundle
-import android.util.Log
-import com.sinch.android.rtc.AudioController
 import com.sinch.android.rtc.AudioController.UseSpeakerphone
 import com.sinch.android.rtc.PushPair
 import com.sinch.android.rtc.calling.Call
@@ -25,11 +23,13 @@ class AnsweredCallActivity : BaseActivity() {
     }
 
     override fun onServiceConnected() {
-     var call=getSinchServiceInterface()?.getCall(callId)
+     val call=getSinchServiceInterface()?.getCall(callId)
            callStatus.text=call?.state.toString()
            callerName.text=intent.getStringExtra(Common.RECIPIENT_NAME)
            call?.addCallListener(SinchCallListener())
+
     }
+
 
     private fun setListeners() {
      hangupBtn.setOnClickListener {
@@ -51,6 +51,7 @@ class AnsweredCallActivity : BaseActivity() {
 
         override fun onShouldSendPushNotification(p0: Call?, p1: MutableList<PushPair>?) {
         }
+
 
         override fun onCallEnded(p0: Call?) {
             volumeControlStream=AudioManager.USE_DEFAULT_STREAM_TYPE

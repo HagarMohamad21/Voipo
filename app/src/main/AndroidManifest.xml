@@ -20,7 +20,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Activities.AnsweredCallActivity"></activity>
+        <activity android:name=".Activities.VideoCallActivity"></activity>
+        <activity android:name=".Activities.AnsweredCallActivity" />
 
         <service android:name=".Sinch.SinchService" />
 
@@ -33,7 +34,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Activities.CallActivity"></activity>
+        <activity android:name=".Activities.CallActivity" />
     </application>
 
 </manifest>
