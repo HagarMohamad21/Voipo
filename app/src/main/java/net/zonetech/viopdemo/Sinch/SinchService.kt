@@ -68,6 +68,11 @@ class SinchService :Service() {
                 Log.d(TAG, "start: throw MissingPermissionException(Manifest.permission.BLUETOOTH) ")
                 throw MissingPermissionException(Manifest.permission.BLUETOOTH)
             }
+            //auxiliary check
+            if (applicationContext.checkCallingOrSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                throw MissingPermissionException(Manifest.permission.CAMERA)
+            }
+
         } catch (e: MissingPermissionException) {
             permissionsGranted = false
             if (messenger != null) {
