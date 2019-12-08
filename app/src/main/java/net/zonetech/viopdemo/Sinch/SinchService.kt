@@ -12,6 +12,7 @@ import com.sinch.android.rtc.*
 import com.sinch.android.rtc.calling.Call
 import com.sinch.android.rtc.calling.CallClient
 import com.sinch.android.rtc.calling.CallClientListener
+import com.sinch.android.rtc.video.VideoController
 import net.zonetech.viopdemo.Activities.IncomingCallActivity
 import net.zonetech.viopdemo.Utils.Common.Companion.CALL_ID
 import net.zonetech.viopdemo.Utils.Common.Companion.MESSAGE_PERMISSIONS_NEEDED
@@ -20,11 +21,10 @@ import net.zonetech.viopdemo.Utils.Common.Companion.REQUIRED_PERMISSION
 
 class SinchService :Service() {
     private val APP_KEY = "b9ea54f0-21dc-4f9e-b435-c312f2e14c38"
-    private val APP_SECRET = "5nLsTY7IqkSzBAYdzXL+Bg=="
+      private val APP_SECRET = "5nLsTY7IqkSzBAYdzXL+Bg=="
     private val ENVIRONMENT = "clientapi.sinch.com"
     private var messenger: Messenger? = null
     private val TAG = "SinchService"
-
     private val mSinchServiceInterface = SinchServiceInterface()
     private var mSinchClient: SinchClient? = null
     private var mUserId: String? = null
@@ -57,16 +57,19 @@ class SinchService :Service() {
         var permissionsGranted = true
         if (mSinchClient == null) {
             mSettings!!.username = userName
+            mUserId=userName
             createClient(userName)
         }
         try { //mandatory checks
             mSinchClient!!.checkManifest()
             // check for bluetooth for automatic audio routing
             if (baseContext.checkCallingOrSelfPermission(Manifest.permission.BLUETOOTH)
-                != PackageManager.PERMISSION_GRANTED
+                != PackageManager.PERMISSION_GRANTED||
+                        baseContext.checkCallingOrSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED
             ) {
                 Log.d(TAG, "start: throw MissingPermissionException(Manifest.permission.BLUETOOTH) ")
                 throw MissingPermissionException(Manifest.permission.BLUETOOTH)
+                throw MissingPermissionException(Manifest.permission.CAMERA)
             }
             //auxiliary check
             if (applicationContext.checkCallingOrSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -130,13 +133,22 @@ class SinchService :Service() {
         fun callPhoneNumber(phoneNumber: String?): Call {
             return mSinchClient!!.getCallClient().callPhoneNumber(phoneNumber)
         }
-
+       fun getVideoController(): VideoController? {
+           return if (!isStarted()) {
+               null
+           } else mSinchClient!!.videoController
+       }
         fun callUser(userId: String?): Call? {
             return if (mSinchClient == null) {
                 null
-            } else mSinchClient!!.getCallClient().callUser(userId)
+            } else mSinchClient!!.callClient.callUser(userId)
         }
-
+        fun callUserVideo(userId: String?):Call?{
+            return if (mSinchClient == null) {
+                null
+            }
+            else mSinchClient!!.callClient.callUserVideo(userId)
+        }
         val userName: String
             get() = mUserId!!
 

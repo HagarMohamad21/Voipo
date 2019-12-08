@@ -1,6 +1,5 @@
 package net.zonetech.viopdemo.Activities
 
-import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
