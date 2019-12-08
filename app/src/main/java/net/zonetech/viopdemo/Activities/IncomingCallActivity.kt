@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
+import android.util.Log
 import android.widget.Toast
 import com.sinch.android.rtc.MissingPermissionException
 import com.sinch.android.rtc.PushPair

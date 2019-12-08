@@ -34,11 +34,11 @@
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <Button
-        android:id="@+id/voicCallBtn"
+        android:id="@+id/callBtn"
         android:layout_width="0dp"
         android:layout_height="40dp"
         android:layout_marginTop="10dp"
-        android:text="Voice Call"
+        android:text="Call"
         android:textSize="14sp"
         android:textAllCaps="false"
         android:textColor="@color/white"
@@ -46,19 +46,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/nameEditTxt" />
-    <Button
-        android:id="@+id/videoCallBtn"
-        android:layout_width="0dp"
-        android:layout_height="40dp"
-        android:layout_marginTop="10dp"
-        android:text="Video Call"
-        android:textSize="14sp"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:background="@drawable/button_login"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/voicCallBtn" />
 
     <TextView
         android:id="@+id/textView4"

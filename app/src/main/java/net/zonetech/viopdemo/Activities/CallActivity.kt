@@ -15,22 +15,22 @@ class CallActivity :BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_call)
-        videoCallBtn.isEnabled=false
-        voicCallBtn.isEnabled=false
+        callBtn.isEnabled=false
         setListeners()
 
     }
 
     override fun onServiceConnected() {
-        voicCallBtn.isEnabled=true
-        videoCallBtn.isEnabled=true
+        callBtn.isEnabled=true
         var name=getSinchServiceInterface()?.userName
         userNameTxt.text = name
+
+
 
     }
 
     private fun setListeners() {
-        voicCallBtn.setOnClickListener {
+        callBtn.setOnClickListener {
             if(!nameEditTxt.text.isNullOrEmpty()){
                 var userName=nameEditTxt.text.toString()
                 try{
@@ -54,37 +54,9 @@ class CallActivity :BaseActivity() {
                 catch (e:MissingPermissionException){
                     ActivityCompat.requestPermissions(this, arrayOf(e.requiredPermission), 0)
 
-
-        videoCallBtn.setOnClickListener {
-            if(!nameEditTxt.text.isNullOrEmpty()){
-                var userName=nameEditTxt.text.toString()
-                try{
-                    var call= getSinchServiceInterface()?.callUserVideo(userName)
-                    if (call == null) { // Service failed for some reason, show a Toast and abort
-                        Toast.makeText(
-                            this,
-                            "Service is not started. Try stopping the service and starting it again before "
-                                    + "placing a call.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@setOnClickListener
-                    }
-                    var callId=call?.callId
-                    Intent(this,VideoCallActivity()::class.java).also {
-                        it.putExtra(Common.CALL_ID,callId)
-                        it.putExtra(Common.RECIPIENT_NAME,userName)
-                        startActivity(it)
-                    }
-                }
-                catch (e:MissingPermissionException){
-                    ActivityCompat.requestPermissions(this, arrayOf(e.requiredPermission), 0)
-
                 }
             }
+
         }
     }
 }
- }
- }
-
- }
