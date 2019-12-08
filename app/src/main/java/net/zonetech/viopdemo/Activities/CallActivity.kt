@@ -3,6 +3,7 @@
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
+import android.util.Log
 import android.widget.Toast
 import com.sinch.android.rtc.MissingPermissionException
 import kotlinx.android.synthetic.main.activity_call.*
@@ -55,6 +56,10 @@ class CallActivity :BaseActivity() {
                     ActivityCompat.requestPermissions(this, arrayOf(e.requiredPermission), 0)
 
 
+
+    }
+}
+ }
         videoCallBtn.setOnClickListener {
             if(!nameEditTxt.text.isNullOrEmpty()){
                 var userName=nameEditTxt.text.toString()
@@ -69,7 +74,7 @@ class CallActivity :BaseActivity() {
                         ).show()
                         return@setOnClickListener
                     }
-                    var callId=call?.callId
+                    val callId= call.callId
                     Intent(this,VideoCallActivity()::class.java).also {
                         it.putExtra(Common.CALL_ID,callId)
                         it.putExtra(Common.RECIPIENT_NAME,userName)
@@ -82,9 +87,6 @@ class CallActivity :BaseActivity() {
                 }
             }
         }
-    }
-}
- }
  }
 
  }

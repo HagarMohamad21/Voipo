@@ -9,6 +9,10 @@ import com.sinch.android.rtc.calling.Call
 import com.sinch.android.rtc.calling.CallState
 import com.sinch.android.rtc.video.VideoCallListener
 import kotlinx.android.synthetic.main.activity_answered_call.*
+import kotlinx.android.synthetic.main.activity_answered_call.callStatus
+import kotlinx.android.synthetic.main.activity_answered_call.callerName
+import kotlinx.android.synthetic.main.activity_answered_call.hangupBtn
+import kotlinx.android.synthetic.main.activity_video_call.*
 import net.zonetech.viopdemo.R
 import net.zonetech.viopdemo.Utils.Common
 import java.util.*
@@ -18,8 +22,9 @@ class VideoCallActivity : BaseActivity() {
     var timerTask: AnsweredCallActivity.DurationTimerTask? = null
     var timer: Timer? = null
     private val mAddedListener = false
-    private val mLocalVideoViewAdded = false
+    private var mLocalVideoViewAdded = false
     private val mRemoteVideoViewAdded = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video_call)
@@ -42,7 +47,6 @@ class VideoCallActivity : BaseActivity() {
     override fun onServiceConnected() {
         val call = getSinchServiceInterface()?.getCall(callId)
         call?.addCallListener(SinchCallListener())
-        if(call==null) finish()
         updateUI()
     }
     private fun updateUI() {
@@ -91,16 +95,21 @@ class VideoCallActivity : BaseActivity() {
     }
 
     private fun addLocalVideo() {
+        if(mLocalVideoViewAdded||getSinchServiceInterface()==null) return
+        val vc=getSinchServiceInterface()?.getVideoController()
+        if(vc!=null){
+         runOnUiThread {
+             localVideo.addView(vc.localView)
+              mLocalVideoViewAdded=true
+         }
+        }
     }
 
     inner class SinchCallListener : VideoCallListener {
         override fun onVideoTrackAdded(p0: Call?) {
         }
-
         override fun onVideoTrackPaused(p0: Call?) {
-
         }
-
         override fun onCallEstablished(p0: Call?) {
             volumeControlStream=AudioManager.STREAM_VOICE_CALL
             callStatus.text="Connected"

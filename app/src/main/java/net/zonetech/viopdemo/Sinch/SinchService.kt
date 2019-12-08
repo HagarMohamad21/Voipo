@@ -64,12 +64,11 @@ class SinchService :Service() {
             mSinchClient!!.checkManifest()
             // check for bluetooth for automatic audio routing
             if (baseContext.checkCallingOrSelfPermission(Manifest.permission.BLUETOOTH)
-                != PackageManager.PERMISSION_GRANTED||
-                        baseContext.checkCallingOrSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED
+                != PackageManager.PERMISSION_GRANTED
             ) {
                 Log.d(TAG, "start: throw MissingPermissionException(Manifest.permission.BLUETOOTH) ")
                 throw MissingPermissionException(Manifest.permission.BLUETOOTH)
-                throw MissingPermissionException(Manifest.permission.CAMERA)
+
             }
             //auxiliary check
             if (applicationContext.checkCallingOrSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
