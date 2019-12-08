@@ -61,7 +61,7 @@ open class BaseActivity : AppCompatActivity(),ServiceConnection {
         return mSinchServiceInterface
     }
 
-    private val messenger = Messenger(object : Handler() {
+     private val messenger = Messenger(object : Handler() {
         override fun handleMessage(msg: Message) {
             when (msg.what) {
                 MESSAGE_PERMISSIONS_NEEDED -> {
