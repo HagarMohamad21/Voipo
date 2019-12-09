@@ -14,6 +14,7 @@ import com.sinch.android.rtc.calling.CallClient
 import com.sinch.android.rtc.calling.CallClientListener
 import com.sinch.android.rtc.video.VideoController
 import net.zonetech.viopdemo.Activities.IncomingCallActivity
+import net.zonetech.viopdemo.Utils.Common
 import net.zonetech.viopdemo.Utils.Common.Companion.CALL_ID
 import net.zonetech.viopdemo.Utils.Common.Companion.MESSAGE_PERMISSIONS_NEEDED
 import net.zonetech.viopdemo.Utils.Common.Companion.MESSENGER
@@ -235,6 +236,7 @@ class SinchService :Service() {
                 IncomingCallActivity::class.java
             )
             intent.putExtra(CALL_ID, call.callId)
+            intent.putExtra(Common.CALL_TYPE,call.details.isVideoOffered)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             this@SinchService.startActivity(intent)
         }

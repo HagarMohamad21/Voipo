@@ -1,5 +1,6 @@
 package net.zonetech.viopdemo.Activities
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -18,7 +19,8 @@ class IncomingCallActivity : BaseActivity() {
     var audioPlayer:AudioPlayer?=null
     var callId:String?=null
     var call:Call?=null
-
+    var isVideo=false
+    var activity:Activity?=null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_incoming_call)
@@ -35,7 +37,7 @@ class IncomingCallActivity : BaseActivity() {
             if(call!=null){
                 try{
                     call?.answer()
-                    Intent(this, AnsweredCallActivity::class.java).also {
+                    Intent(this, activity!!::class.java).also {
                         it.putExtra(Common.CALL_ID, callId)
                         startActivity(it)
                     }
@@ -64,6 +66,16 @@ class IncomingCallActivity : BaseActivity() {
 
     private fun initViews() {
         callId=intent.getStringExtra(Common.CALL_ID)
+        isVideo=intent.getBooleanExtra(Common.CALL_TYPE,false)
+        if(isVideo){
+            callType.text="Incoming video call"
+            activity=VideoCallActivity()
+        }
+        else{
+            callType.text="Incoming call"
+            activity=AnsweredCallActivity()
+        }
+
     }
     override fun onServiceConnected() {
 

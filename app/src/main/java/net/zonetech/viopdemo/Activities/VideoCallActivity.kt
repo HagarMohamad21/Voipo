@@ -3,15 +3,13 @@ package net.zonetech.viopdemo.Activities
 import android.media.AudioManager
 import android.os.Bundle
 import android.view.View
-import com.sinch.android.rtc.AudioController
+import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import com.sinch.android.rtc.PushPair
 import com.sinch.android.rtc.calling.Call
 import com.sinch.android.rtc.calling.CallState
 import com.sinch.android.rtc.video.VideoCallListener
-import kotlinx.android.synthetic.main.activity_answered_call.*
-import kotlinx.android.synthetic.main.activity_answered_call.callStatus
-import kotlinx.android.synthetic.main.activity_answered_call.callerName
-import kotlinx.android.synthetic.main.activity_answered_call.hangupBtn
 import kotlinx.android.synthetic.main.activity_video_call.*
 import net.zonetech.viopdemo.R
 import net.zonetech.viopdemo.Utils.Common
@@ -19,16 +17,17 @@ import java.util.*
 
 class VideoCallActivity : BaseActivity() {
     var callId: String? = null
-    var timerTask: AnsweredCallActivity.DurationTimerTask? = null
+    var timerTask: DurationTinerTask? = null
     var timer: Timer? = null
-    private val mAddedListener = false
+    private var mAddedListener = false
     private var mLocalVideoViewAdded = false
-    private val mRemoteVideoViewAdded = false
+    private var mRemoteVideoViewAdded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video_call)
         callId = intent.getStringExtra(Common.CALL_ID)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setListeners()
     }
 
@@ -42,66 +41,87 @@ class VideoCallActivity : BaseActivity() {
         getSinchServiceInterface()?.getCall(callId)?.hangup()
         finish()
     }
-
-
     override fun onServiceConnected() {
         val call = getSinchServiceInterface()?.getCall(callId)
-        call?.addCallListener(SinchCallListener())
+        if(call!=null){
+            if(!mAddedListener){
+                call.addCallListener(SinchCallListener())
+                mAddedListener=true
+
+            }
+            else{
+                finish()
+            }
+        }
+
         updateUI()
     }
     private fun updateUI() {
-    if(getSinchServiceInterface()==null) return
+        if(getSinchServiceInterface()==null) return
         val call=getSinchServiceInterface()?.getCall(callId)
         callStatus.text = call?.state.toString()
         callerName.text = intent.getStringExtra(Common.RECIPIENT_NAME)
         if(call?.details?.isVideoOffered!!){
             if(call.state ==CallState.ESTABLISHED)
             {
-                setVideoViewVisiblity(true,true)
+                setVideoViewVisibility(true,true)
             }
             else{
-                setVideoViewVisiblity(true,false)
+                setVideoViewVisibility(true,false)
             }
         }
         else{
-            setVideoViewVisiblity(false,false)
+            setVideoViewVisibility(false,false)
         }
     }
-
-    private fun setVideoViewVisiblity(localVideo: Boolean, remoteVideo: Boolean) {
-        if(getSinchServiceInterface()==null) return
-        if(!mLocalVideoViewAdded){
+    private fun setVideoViewVisibility(localVideo: Boolean, remoteVideo: Boolean) {
+        if (getSinchServiceInterface() == null) return
+        if (!mLocalVideoViewAdded) {
             addLocalVideo()
         }
-        if(!mRemoteVideoViewAdded){
+        if (!mRemoteVideoViewAdded) {
             addRemoteVideo()
         }
 
-          val vc=getSinchServiceInterface()?.getVideoController()
-          if(vc!=null){
-              runOnUiThread {
-                  run{
-                      if(localVideo){ vc.localView.visibility=View.VISIBLE}
-                      else if(!localVideo){vc.localView.visibility=View.GONE}
-                      if(remoteVideo){ vc.remoteView.visibility=View.VISIBLE}
-                      else if(!remoteVideo){vc.remoteView.visibility=View.GONE}
-                  }
-              }
-          }
+        val vc = getSinchServiceInterface()?.getVideoController()
+        if (vc != null) {
+            runOnUiThread {
+                run {
+                    if (localVideo) {
+                        vc.localView.visibility = View.VISIBLE
+                    } else if (!localVideo) {
+                        vc.localView.visibility = View.GONE
+                    }
+                    if (remoteVideo) {
+                        vc.remoteView.visibility = View.VISIBLE
+                    } else if (!remoteVideo) {
+                        vc.remoteView.visibility = View.GONE
+                    }
+                }
+            }
+        }
 
     }
-
     private fun addRemoteVideo() {
+        if(mRemoteVideoViewAdded||getSinchServiceInterface()==null) return
+        val vc=getSinchServiceInterface()?.getVideoController()
+        if(vc!=null){
+            runOnUiThread{
+                remoteVideo.addView(vc.remoteView)
+                mRemoteVideoViewAdded=true
+
+            }
+        }
     }
 
     private fun addLocalVideo() {
         if(mLocalVideoViewAdded||getSinchServiceInterface()==null) return
         val vc=getSinchServiceInterface()?.getVideoController()
         if(vc!=null){
-         runOnUiThread {
-             localVideo.addView(vc.localView)
-              mLocalVideoViewAdded=true
-         }
+            runOnUiThread {
+                localVideo.addView(vc.localView)
+                mLocalVideoViewAdded=true
+            }
         }
     }
 
@@ -116,9 +136,9 @@ class VideoCallActivity : BaseActivity() {
             callerName.text=p0?.remoteUserId
             var audioManager=getSinchServiceInterface()?.audioController
             audioManager?.enableSpeaker()
-           if(p0?.details?.isVideoOffered!!){
-               setVideoViewVisiblity(true,true)
-           }
+            if(p0?.details?.isVideoOffered!!){
+                setVideoViewVisibility(localVideo = true, remoteVideo = true)
+            }
         }
 
         override fun onVideoTrackResumed(p0: Call?) {
@@ -132,8 +152,63 @@ class VideoCallActivity : BaseActivity() {
         }
 
         override fun onCallEnded(p0: Call?) {
-         volumeControlStream=AudioManager.USE_DEFAULT_STREAM_TYPE
+            volumeControlStream=AudioManager.USE_DEFAULT_STREAM_TYPE
             endCall()
+        }
+    }
+
+    inner class DurationTinerTask: TimerTask() {
+        override fun run() {
+            runOnUiThread{
+                updateCallDuration()
+            }
+        }
+    }
+
+    private fun updateCallDuration() {
+        var call=getSinchServiceInterface()?.getCall(callId)
+        callDuration.text=foramatDuration(call?.details?.duration!!)
+    }
+
+    private fun foramatDuration(duration: Int): String {
+        var min=duration/60
+        var sec=duration%60
+        return "$min:$sec"
+    }
+
+    override fun onBackPressed() {
+
+    }
+
+
+
+    override fun onStop() {
+        super.onStop()
+        timerTask?.cancel()
+        timer?.cancel()
+        removeVideoViews()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        timer=Timer()
+        timerTask=DurationTinerTask()
+        timer?.schedule(timerTask,0,500)
+    }
+    private fun  removeVideoViews(){
+        if(getSinchServiceInterface()==null) return
+        val vc=getSinchServiceInterface()?.getVideoController()
+        if(vc!=null){
+            runOnUiThread {
+                run{
+                    val parent =vc.remoteView.parent as ViewGroup
+                    parent.removeView(vc.remoteView)
+                    val parent2 =vc.localView.parent as ViewGroup
+                    parent2.removeView(vc.localView)
+                    mLocalVideoViewAdded = false
+                    mRemoteVideoViewAdded = false
+                }
+            }
         }
     }
 }
